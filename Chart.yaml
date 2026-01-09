@@ -1,0 +1,17 @@
+apiVersion: v2
+name: convex
+description: A Helm chart for deploying Convex Backend - a reactive database for building live-updating applications
+type: application
+version: 0.1.0
+appVersion: "latest"
+keywords:
+  - convex
+  - database
+  - reactive
+  - backend
+  - serverless
+home: https://convex.dev
+sources:
+  - https://github.com/get-convex/convex-backend
+maintainers:
+  - name: convex-helm

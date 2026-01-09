@@ -1,0 +1,55 @@
+🎉 Convex Backend has been deployed!
+
+{{- if .Values.ingress.enabled }}
+
+Access your Convex deployment:
+
+  Backend API: https://{{ .Values.ingress.backend.host }}
+  {{- if .Values.dashboard.enabled }}
+  Dashboard:   https://{{ .Values.ingress.dashboard.host }}
+  {{- end }}
+
+{{- else }}
+
+To access your Convex deployment, run:
+
+  # Backend API (port 3210)
+  kubectl port-forward svc/{{ include "convex.backend.fullname" . }} 3210:{{ .Values.service.backend.apiPort }} -n {{ .Release.Namespace }}
+
+  # HTTP Actions (port 3211)
+  kubectl port-forward svc/{{ include "convex.backend.fullname" . }} 3211:{{ .Values.service.backend.httpActionsPort }} -n {{ .Release.Namespace }}
+
+  {{- if .Values.dashboard.enabled }}
+
+  # Dashboard (port 6791)
+  kubectl port-forward svc/{{ include "convex.dashboard.fullname" . }} 6791:{{ .Values.service.dashboard.port }} -n {{ .Release.Namespace }}
+  {{- end }}
+
+{{- end }}
+
+Generate an admin key:
+
+  kubectl exec -it deploy/{{ include "convex.backend.fullname" . }} -n {{ .Release.Namespace }} -- ./generate_admin_key.sh
+
+Configure your Convex project:
+
+  1. Set CONVEX_SELF_HOSTED_ADMIN_KEY in your app's environment
+  2. Set CONVEX_DEPLOYMENT_URL to your backend API URL
+  3. Run: npx convex dev --once
+
+{{- if eq .Values.database.type "sqlite" }}
+
+⚠️  WARNING: You are using SQLite storage which is not recommended for production.
+    Consider using PostgreSQL or MySQL for production deployments.
+{{- end }}
+
+{{- if not .Values.instance.secret }}
+{{- if not .Values.instance.existingSecret }}
+
+⚠️  WARNING: No instance secret configured!
+    Generate one with: openssl rand -base64 32
+    Then upgrade with: --set instance.secret=<your-secret>
+{{- end }}
+{{- end }}
+
+For more information, visit: https://docs.convex.dev/self-hosting

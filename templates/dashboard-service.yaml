@@ -1,0 +1,21 @@
+{{- if .Values.dashboard.enabled }}
+apiVersion: v1
+kind: Service
+metadata:
+  name: {{ include "convex.dashboard.fullname" . }}
+  labels:
+    {{- include "convex.dashboard.labels" . | nindent 4 }}
+  {{- with .Values.service.dashboard.annotations }}
+  annotations:
+    {{- toYaml . | nindent 4 }}
+  {{- end }}
+spec:
+  type: {{ .Values.service.dashboard.type }}
+  ports:
+    - port: {{ .Values.service.dashboard.port }}
+      targetPort: http
+      protocol: TCP
+      name: http
+  selector:
+    {{- include "convex.dashboard.selectorLabels" . | nindent 4 }}
+{{- end }}

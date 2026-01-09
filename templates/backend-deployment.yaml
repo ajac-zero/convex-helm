@@ -1,0 +1,127 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: {{ include "convex.backend.fullname" . }}
+  labels:
+    {{- include "convex.backend.labels" . | nindent 4 }}
+spec:
+  replicas: {{ .Values.backend.replicas }}
+  selector:
+    matchLabels:
+      {{- include "convex.backend.selectorLabels" . | nindent 6 }}
+  template:
+    metadata:
+      annotations:
+        checksum/config: {{ include (print $.Template.BasePath "/configmap.yaml") . | sha256sum }}
+        checksum/secret: {{ include (print $.Template.BasePath "/secret.yaml") . | sha256sum }}
+        {{- with .Values.backend.podAnnotations }}
+        {{- toYaml . | nindent 8 }}
+        {{- end }}
+      labels:
+        {{- include "convex.backend.selectorLabels" . | nindent 8 }}
+    spec:
+      {{- if .Values.backend.serviceAccount.create }}
+      serviceAccountName: {{ include "convex.serviceAccountName" . }}
+      {{- end }}
+      securityContext:
+        fsGroup: 1000
+      containers:
+        - name: backend
+          image: "{{ .Values.backend.image.repository }}:{{ .Values.backend.image.tag }}"
+          imagePullPolicy: {{ .Values.backend.image.pullPolicy }}
+          ports:
+            - name: api
+              containerPort: 3210
+              protocol: TCP
+            - name: http-actions
+              containerPort: 3211
+              protocol: TCP
+          envFrom:
+            - configMapRef:
+                name: {{ include "convex.configMapName" . }}
+          env:
+            - name: INSTANCE_SECRET
+              valueFrom:
+                secretKeyRef:
+                  name: {{ include "convex.secretName" . }}
+                  key: {{ .Values.instance.existingSecretKey | default "instance-secret" }}
+            {{- if eq .Values.database.type "postgres" }}
+            - name: POSTGRES_URL
+              valueFrom:
+                secretKeyRef:
+                  name: {{ include "convex.databaseSecretName" . }}
+                  key: {{ .Values.database.postgres.existingSecretKey | default "postgres-url" }}
+            {{- else if eq .Values.database.type "mysql" }}
+            - name: MYSQL_URL
+              valueFrom:
+                secretKeyRef:
+                  name: {{ include "convex.databaseSecretName" . }}
+                  key: {{ .Values.database.mysql.existingSecretKey | default "mysql-url" }}
+            {{- end }}
+            {{- if eq .Values.storage.type "s3" }}
+            - name: AWS_ACCESS_KEY_ID
+              valueFrom:
+                secretKeyRef:
+                  name: {{ include "convex.s3SecretName" . }}
+                  key: {{ .Values.storage.s3.accessKeyIdKey | default "aws-access-key-id" }}
+            - name: AWS_SECRET_ACCESS_KEY
+              valueFrom:
+                secretKeyRef:
+                  name: {{ include "convex.s3SecretName" . }}
+                  key: {{ .Values.storage.s3.secretAccessKeyKey | default "aws-secret-access-key" }}
+            {{- if .Values.storage.s3.sessionToken }}
+            - name: AWS_SESSION_TOKEN
+              valueFrom:
+                secretKeyRef:
+                  name: {{ include "convex.s3SecretName" . }}
+                  key: aws-session-token
+            {{- end }}
+            {{- end }}
+            {{- with .Values.backend.extraEnv }}
+            {{- toYaml . | nindent 12 }}
+            {{- end }}
+          {{- if .Values.healthCheck.liveness.enabled }}
+          livenessProbe:
+            httpGet:
+              path: /version
+              port: api
+            initialDelaySeconds: {{ .Values.healthCheck.liveness.initialDelaySeconds }}
+            periodSeconds: {{ .Values.healthCheck.liveness.periodSeconds }}
+            timeoutSeconds: {{ .Values.healthCheck.liveness.timeoutSeconds }}
+            failureThreshold: {{ .Values.healthCheck.liveness.failureThreshold }}
+          {{- end }}
+          {{- if .Values.healthCheck.readiness.enabled }}
+          readinessProbe:
+            httpGet:
+              path: /version
+              port: api
+            initialDelaySeconds: {{ .Values.healthCheck.readiness.initialDelaySeconds }}
+            periodSeconds: {{ .Values.healthCheck.readiness.periodSeconds }}
+            timeoutSeconds: {{ .Values.healthCheck.readiness.timeoutSeconds }}
+            failureThreshold: {{ .Values.healthCheck.readiness.failureThreshold }}
+          {{- end }}
+          resources:
+            {{- toYaml .Values.backend.resources | nindent 12 }}
+          volumeMounts:
+            - name: data
+              mountPath: /convex/data
+      volumes:
+        - name: data
+          {{- if and .Values.persistence.enabled (eq .Values.storage.type "local") }}
+          persistentVolumeClaim:
+            claimName: {{ include "convex.pvcName" . }}
+          {{- else }}
+          emptyDir: {}
+          {{- end }}
+      {{- with .Values.backend.nodeSelector }}
+      nodeSelector:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      {{- with .Values.backend.affinity }}
+      affinity:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      {{- with .Values.backend.tolerations }}
+      tolerations:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}

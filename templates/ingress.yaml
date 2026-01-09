@@ -1,0 +1,78 @@
+{{- if .Values.ingress.enabled }}
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: {{ include "convex.backend.fullname" . }}
+  labels:
+    {{- include "convex.backend.labels" . | nindent 4 }}
+  {{- with .Values.ingress.annotations }}
+  annotations:
+    {{- toYaml . | nindent 4 }}
+  {{- end }}
+spec:
+  {{- if .Values.ingress.className }}
+  ingressClassName: {{ .Values.ingress.className }}
+  {{- end }}
+  {{- if .Values.ingress.backend.tls.enabled }}
+  tls:
+    - hosts:
+        - {{ .Values.ingress.backend.host }}
+      {{- if .Values.ingress.backend.tls.secretName }}
+      secretName: {{ .Values.ingress.backend.tls.secretName }}
+      {{- end }}
+  {{- end }}
+  rules:
+    - host: {{ .Values.ingress.backend.host }}
+      http:
+        paths:
+          - path: /
+            pathType: Prefix
+            backend:
+              service:
+                name: {{ include "convex.backend.fullname" . }}
+                port:
+                  number: {{ .Values.service.backend.apiPort }}
+          - path: /http
+            pathType: Prefix
+            backend:
+              service:
+                name: {{ include "convex.backend.fullname" . }}
+                port:
+                  number: {{ .Values.service.backend.httpActionsPort }}
+---
+{{- if .Values.dashboard.enabled }}
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: {{ include "convex.dashboard.fullname" . }}
+  labels:
+    {{- include "convex.dashboard.labels" . | nindent 4 }}
+  {{- with .Values.ingress.annotations }}
+  annotations:
+    {{- toYaml . | nindent 4 }}
+  {{- end }}
+spec:
+  {{- if .Values.ingress.className }}
+  ingressClassName: {{ .Values.ingress.className }}
+  {{- end }}
+  {{- if .Values.ingress.dashboard.tls.enabled }}
+  tls:
+    - hosts:
+        - {{ .Values.ingress.dashboard.host }}
+      {{- if .Values.ingress.dashboard.tls.secretName }}
+      secretName: {{ .Values.ingress.dashboard.tls.secretName }}
+      {{- end }}
+  {{- end }}
+  rules:
+    - host: {{ .Values.ingress.dashboard.host }}
+      http:
+        paths:
+          - path: /
+            pathType: Prefix
+            backend:
+              service:
+                name: {{ include "convex.dashboard.fullname" . }}
+                port:
+                  number: {{ .Values.service.dashboard.port }}
+{{- end }}
+{{- end }}

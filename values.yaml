@@ -1,0 +1,249 @@
+## Convex Backend Helm Chart Values
+
+## Instance configuration
+instance:
+  ## Unique name for this Convex instance
+  name: "convex-self-hosted"
+  ## Instance secret (required) - generate with: openssl rand -hex 32
+  ## Can be provided directly or via existingSecret
+  secret: ""
+  ## Use an existing secret for instance secret
+  existingSecret: ""
+  existingSecretKey: "instance-secret"
+
+## Backend configuration
+backend:
+  image:
+    repository: ghcr.io/get-convex/convex-backend
+    tag: "latest"
+    pullPolicy: IfNotPresent
+  
+  replicas: 1
+  
+  ## Resource limits and requests
+  resources:
+    requests:
+      memory: "512Mi"
+      cpu: "250m"
+    limits:
+      memory: "2Gi"
+      cpu: "2000m"
+  
+  ## Node selector for backend pods
+  nodeSelector: {}
+  
+  ## Tolerations for backend pods
+  tolerations: []
+  
+  ## Affinity rules for backend pods
+  affinity: {}
+  
+  ## Additional environment variables
+  extraEnv: []
+  
+  ## Pod annotations
+  podAnnotations: {}
+  
+  ## Service account
+  serviceAccount:
+    create: true
+    name: ""
+    annotations: {}
+
+## Dashboard configuration
+dashboard:
+  enabled: true
+  
+  image:
+    repository: ghcr.io/get-convex/convex-dashboard
+    tag: "latest"
+    pullPolicy: IfNotPresent
+  
+  replicas: 1
+  
+  resources:
+    requests:
+      memory: "128Mi"
+      cpu: "100m"
+    limits:
+      memory: "512Mi"
+      cpu: "500m"
+  
+  nodeSelector: {}
+  tolerations: []
+  affinity: {}
+  extraEnv: []
+  podAnnotations: {}
+
+## Database configuration
+database:
+  ## Database type: sqlite, postgres, or mysql
+  type: "sqlite"
+  
+  ## PostgreSQL configuration (when type: postgres)
+  postgres:
+    ## Connection URL (without database name)
+    ## Example: postgres://user:password@host:5432
+    url: ""
+    ## Use existing secret for database URL
+    existingSecret: ""
+    existingSecretKey: "postgres-url"
+  
+  ## MySQL configuration (when type: mysql)
+  mysql:
+    ## Connection URL (without database name)
+    ## Example: mysql://user:password@host:3306
+    url: ""
+    ## Use existing secret for database URL
+    existingSecret: ""
+    existingSecretKey: "mysql-url"
+  
+  ## SQLite configuration (when type: sqlite)
+  sqlite:
+    ## Path inside the container
+    path: "/convex/data/db.sqlite3"
+  
+  ## Disable SSL requirement (for local development only)
+  disableSSL: false
+
+## Storage configuration
+storage:
+  ## Storage type: local or s3
+  type: "local"
+  
+  ## Local storage configuration
+  local:
+    dataDir: "/convex/data"
+    storageDir: "/convex/data/storage"
+    tmpDir: "/convex/data/tmp"
+  
+  ## S3 storage configuration
+  s3:
+    ## AWS credentials
+    accessKeyId: ""
+    secretAccessKey: ""
+    region: "us-east-1"
+    ## Optional session token for temporary credentials
+    sessionToken: ""
+    ## Optional custom endpoint for S3-compatible services (R2, MinIO, etc.)
+    endpoint: ""
+    
+    ## Use existing secret for AWS credentials
+    existingSecret: ""
+    accessKeyIdKey: "aws-access-key-id"
+    secretAccessKeyKey: "aws-secret-access-key"
+    
+    ## S3 bucket names (all required when using S3)
+    buckets:
+      exports: ""
+      snapshotImports: ""
+      modules: ""
+      files: ""
+      search: ""
+    
+    ## S3 compatibility options
+    disableChecksums: false
+    disableSSE: false
+    forcePathStyle: false
+
+## Persistence configuration (for local storage)
+persistence:
+  enabled: true
+  ## Storage class (leave empty for default)
+  storageClass: ""
+  ## Access mode
+  accessMode: ReadWriteOnce
+  ## Storage size
+  size: 10Gi
+  ## Existing PVC to use
+  existingClaim: ""
+  ## Annotations for PVC
+  annotations: {}
+
+## URL configuration
+urls:
+  ## External URL for backend API (as seen by clients)
+  ## Example: https://api.my-domain.com
+  cloudOrigin: ""
+  ## External URL for HTTP actions
+  ## Example: https://api.my-domain.com/http
+  siteOrigin: ""
+
+## Ingress configuration
+ingress:
+  enabled: false
+  
+  ## Ingress class name (nginx, traefik, etc.)
+  className: ""
+  
+  ## Annotations for ingress
+  annotations: {}
+    # kubernetes.io/ingress.class: nginx
+    # cert-manager.io/cluster-issuer: letsencrypt-prod
+  
+  ## Backend ingress configuration
+  backend:
+    ## Hostname for backend API
+    host: ""
+    ## TLS configuration
+    tls:
+      enabled: false
+      secretName: ""
+  
+  ## Dashboard ingress configuration
+  dashboard:
+    ## Hostname for dashboard
+    host: ""
+    ## TLS configuration
+    tls:
+      enabled: false
+      secretName: ""
+
+## Service configuration
+service:
+  backend:
+    type: ClusterIP
+    ## Port for main API
+    apiPort: 3210
+    ## Port for HTTP actions
+    httpActionsPort: 3211
+    annotations: {}
+  
+  dashboard:
+    type: ClusterIP
+    port: 6791
+    annotations: {}
+
+## Health check configuration
+healthCheck:
+  ## Liveness probe
+  liveness:
+    enabled: true
+    initialDelaySeconds: 30
+    periodSeconds: 10
+    timeoutSeconds: 5
+    failureThreshold: 3
+  
+  ## Readiness probe
+  readiness:
+    enabled: true
+    initialDelaySeconds: 10
+    periodSeconds: 5
+    timeoutSeconds: 3
+    failureThreshold: 3
+
+## Logging configuration
+logging:
+  ## Log level: trace, debug, info, warn, error
+  level: "info"
+  ## Redact sensitive logs from client responses
+  redactLogsToClient: true
+
+## Advanced configuration
+advanced:
+  ## User code execution timeout (seconds)
+  actionsUserTimeoutSecs: 600
+  ## Document retention delay (seconds)
+  documentRetentionDelay: 172800
+  ## Disable anonymous usage beacon
+  disableBeacon: false

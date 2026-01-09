@@ -1,0 +1,75 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: {{ include "convex.configMapName" . }}
+  labels:
+    {{- include "convex.labels" . | nindent 4 }}
+data:
+  INSTANCE_NAME: {{ .Values.instance.name | quote }}
+  RUST_LOG: {{ .Values.logging.level | quote }}
+  {{- if .Values.logging.redactLogsToClient }}
+  REDACT_LOGS_TO_CLIENT: "true"
+  {{- end }}
+  
+  {{- /* Database configuration */}}
+  {{- if eq .Values.database.type "sqlite" }}
+  SQLITE_DB: {{ .Values.database.sqlite.path | quote }}
+  {{- end }}
+  {{- if .Values.database.disableSSL }}
+  DO_NOT_REQUIRE_SSL: "1"
+  {{- end }}
+  
+  {{- /* Storage configuration */}}
+  {{- if eq .Values.storage.type "local" }}
+  DATA_DIR: {{ .Values.storage.local.dataDir | quote }}
+  STORAGE_DIR: {{ .Values.storage.local.storageDir | quote }}
+  TMPDIR: {{ .Values.storage.local.tmpDir | quote }}
+  {{- else if eq .Values.storage.type "s3" }}
+  AWS_REGION: {{ .Values.storage.s3.region | quote }}
+  {{- if .Values.storage.s3.endpoint }}
+  S3_ENDPOINT_URL: {{ .Values.storage.s3.endpoint | quote }}
+  {{- end }}
+  {{- if .Values.storage.s3.buckets.exports }}
+  S3_STORAGE_EXPORTS_BUCKET: {{ .Values.storage.s3.buckets.exports | quote }}
+  {{- end }}
+  {{- if .Values.storage.s3.buckets.snapshotImports }}
+  S3_STORAGE_SNAPSHOT_IMPORTS_BUCKET: {{ .Values.storage.s3.buckets.snapshotImports | quote }}
+  {{- end }}
+  {{- if .Values.storage.s3.buckets.modules }}
+  S3_STORAGE_MODULES_BUCKET: {{ .Values.storage.s3.buckets.modules | quote }}
+  {{- end }}
+  {{- if .Values.storage.s3.buckets.files }}
+  S3_STORAGE_FILES_BUCKET: {{ .Values.storage.s3.buckets.files | quote }}
+  {{- end }}
+  {{- if .Values.storage.s3.buckets.search }}
+  S3_STORAGE_SEARCH_BUCKET: {{ .Values.storage.s3.buckets.search | quote }}
+  {{- end }}
+  {{- if .Values.storage.s3.disableChecksums }}
+  AWS_S3_DISABLE_CHECKSUMS: "true"
+  {{- end }}
+  {{- if .Values.storage.s3.disableSSE }}
+  AWS_S3_DISABLE_SSE: "true"
+  {{- end }}
+  {{- if .Values.storage.s3.forcePathStyle }}
+  AWS_S3_FORCE_PATH_STYLE: "true"
+  {{- end }}
+  {{- end }}
+  
+  {{- /* URL configuration */}}
+  {{- if .Values.urls.cloudOrigin }}
+  CONVEX_CLOUD_ORIGIN: {{ .Values.urls.cloudOrigin | quote }}
+  {{- end }}
+  {{- if .Values.urls.siteOrigin }}
+  CONVEX_SITE_ORIGIN: {{ .Values.urls.siteOrigin | quote }}
+  {{- end }}
+  
+  {{- /* Advanced configuration */}}
+  {{- if .Values.advanced.actionsUserTimeoutSecs }}
+  ACTIONS_USER_TIMEOUT_SECS: {{ .Values.advanced.actionsUserTimeoutSecs | quote }}
+  {{- end }}
+  {{- if .Values.advanced.documentRetentionDelay }}
+  DOCUMENT_RETENTION_DELAY: {{ .Values.advanced.documentRetentionDelay | quote }}
+  {{- end }}
+  {{- if .Values.advanced.disableBeacon }}
+  DISABLE_BEACON: "true"
+  {{- end }}
