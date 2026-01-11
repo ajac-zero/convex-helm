@@ -10,6 +10,11 @@ A Helm chart for deploying [Convex Backend](https://github.com/get-convex/convex
 
 ## Installation
 
+```bash
+helm repo add convex https://ajac-zero.github.io/convex-helm
+helm repo update
+```
+
 ### Quick Start (Development)
 
 ```bash
@@ -17,7 +22,7 @@ A Helm chart for deploying [Convex Backend](https://github.com/get-convex/convex
 INSTANCE_SECRET=$(openssl rand -hex 32)
 
 # Install with SQLite (development only)
-helm install convex . \
+helm install convex convex/convex \
   --set instance.secret="$INSTANCE_SECRET" \
   --set urls.cloudOrigin="http://localhost:3210"
 ```
@@ -25,7 +30,7 @@ helm install convex . \
 ### Production with PostgreSQL
 
 ```bash
-helm install convex . \
+helm install convex convex/convex \
   --set instance.secret="$INSTANCE_SECRET" \
   --set database.type=postgres \
   --set database.postgres.url="postgres://user:password@host:5432" \
@@ -39,7 +44,7 @@ helm install convex . \
 ### Production with PostgreSQL and S3
 
 ```bash
-helm install convex . \
+helm install convex convex/convex \
   --set instance.secret="$INSTANCE_SECRET" \
   --set database.type=postgres \
   --set database.postgres.url="postgres://user:password@host:5432" \
